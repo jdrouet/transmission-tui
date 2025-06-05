@@ -11,7 +11,6 @@ use transmission_rpc::types::{Torrent, Torrents};
 use crate::view::View;
 
 mod components;
-mod helper;
 mod runner;
 mod view;
 

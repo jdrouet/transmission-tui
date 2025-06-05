@@ -15,7 +15,7 @@ mod runner;
 mod view;
 
 pub enum Action {
-    DeleteTorrent(i64),
+    DeleteTorrent(i64, bool),
     RefreshList,
     RefreshTorrent(i64),
 }

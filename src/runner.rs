@@ -20,9 +20,13 @@ impl Runner {
         }
     }
 
-    async fn delete_torrent(&mut self, id: i64) -> crate::Event {
+    async fn delete_torrent(&mut self, id: i64, delete_local_data: bool) -> crate::Event {
         let _ = self.event_sender.send(crate::Event::TorrentDeleteStart(id));
-        match self.client.torrent_remove(vec![Id::Id(id)], false).await {
+        match self
+            .client
+            .torrent_remove(vec![Id::Id(id)], delete_local_data)
+            .await
+        {
             Ok(_) => crate::Event::TorrentDelete(id),
             Err(err) => crate::Event::TorrentDeleteError(id, err),
         }
@@ -111,7 +115,9 @@ impl Runner {
             let event = match action {
                 crate::Action::RefreshList => self.refresh_list().await,
                 crate::Action::RefreshTorrent(id) => self.refresh_torrent(id).await,
-                crate::Action::DeleteTorrent(id) => self.delete_torrent(id).await,
+                crate::Action::DeleteTorrent(id, delete_local_data) => {
+                    self.delete_torrent(id, delete_local_data).await
+                }
             };
             let _ = self.event_sender.send(event);
         }

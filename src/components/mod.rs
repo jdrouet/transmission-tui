@@ -2,6 +2,7 @@ use std::sync::LazyLock;
 
 use transmission_rpc::types::TorrentStatus;
 
+pub(crate) mod confirm;
 pub(crate) mod list;
 
 pub(crate) const SIZE_FORMATTER: LazyLock<human_number::Formatter<'static>> =

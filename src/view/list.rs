@@ -9,6 +9,7 @@ use ratatui::widgets::{Block, LineGauge, Widget};
 use transmission_rpc::types::{Torrent, TorrentStatus};
 
 use crate::Action;
+use crate::components::confirm::{Confirm, ConfirmOption};
 use crate::components::{SIZE_FORMATTER, SPEED_FORMATTER, torrent_status_label};
 
 struct TorrentItem(Torrent);
@@ -94,6 +95,7 @@ pub(super) struct ListView {
     items: Vec<TorrentItem>,
     offset: usize,
     selected: Option<usize>,
+    delete_confirm: Option<i64>,
 }
 
 impl ListView {
@@ -143,13 +145,23 @@ impl ListView {
                 KeyCode::Char('r') => {
                     context.send_action(Action::RefreshList);
                 }
-                KeyCode::Char('d') => {
-                    if let Some(id) = self
+                KeyCode::Char('d') if self.delete_confirm.is_none() => {
+                    self.delete_confirm = self
                         .get_selected()
                         .and_then(|index| self.items.get(index))
-                        .and_then(|torrent| torrent.0.id)
-                    {
-                        context.send_action(Action::DeleteTorrent(id));
+                        .and_then(|torrent| torrent.0.id);
+                }
+                KeyCode::Char('c') => {
+                    let _ = self.delete_confirm.take();
+                }
+                KeyCode::Char('y') => {
+                    if let Some(id) = self.delete_confirm.take() {
+                        context.send_action(Action::DeleteTorrent(id, true));
+                    }
+                }
+                KeyCode::Char('n') => {
+                    if let Some(id) = self.delete_confirm.take() {
+                        context.send_action(Action::DeleteTorrent(id, false));
                     }
                 }
                 _ => {}
@@ -226,5 +238,18 @@ impl Widget for &ListView {
         block.render(area, buf);
         crate::components::list::List::new(&self.items, self.offset, self.get_selected())
             .render(inner, buf);
+
+        if self.delete_confirm.is_some() {
+            Confirm::new(
+                "Delete the local data?",
+                [
+                    ConfirmOption::new('y', "Yes"),
+                    ConfirmOption::new('n', "No"),
+                ],
+                (60, 5),
+            )
+            .with_title(" Delete torrent ")
+            .render(area, buf);
+        }
     }
 }

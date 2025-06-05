@@ -1,5 +1,3 @@
-use std::sync::LazyLock;
-
 use crossterm::event::{Event, KeyCode};
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::prelude::{Buffer, Rect};
@@ -11,11 +9,7 @@ use ratatui::widgets::{Block, LineGauge, Widget};
 use transmission_rpc::types::{Torrent, TorrentStatus};
 
 use crate::Action;
-
-const SIZE_FORMATTER: LazyLock<human_number::Formatter<'static>> =
-    LazyLock::new(|| human_number::Formatter::si().with_unit("B"));
-const SPEED_FORMATTER: LazyLock<human_number::Formatter<'static>> =
-    LazyLock::new(|| human_number::Formatter::si().with_unit("B/s"));
+use crate::components::{SIZE_FORMATTER, SPEED_FORMATTER, torrent_status_label};
 
 struct TorrentItem(Torrent);
 
@@ -40,7 +34,7 @@ impl Widget for &TorrentItem {
         }
 
         // status
-        match self.0.status.unwrap_or(TorrentStatus::Stopped) {
+        let text = match self.0.status.unwrap_or(TorrentStatus::Stopped) {
             TorrentStatus::Downloading => {
                 let sending_peers = self.0.peers_sending_to_us.unwrap_or(0);
                 let connected_peers = self.0.peers_connected.unwrap_or(0);
@@ -49,25 +43,25 @@ impl Widget for &TorrentItem {
                 let upload_speed = self.0.rate_upload.unwrap_or(0) as f64;
                 let upload_speed = SPEED_FORMATTER.format(upload_speed).to_string();
                 Text::from(format!(
-                    "Downloading from {sending_peers} of {connected_peers} peers - 🔻 {download_speed} / 🔺 {upload_speed}"
+                    "{} from {sending_peers} of {connected_peers} peers - 🔻 {download_speed} / 🔺 {upload_speed}",
+                    torrent_status_label(TorrentStatus::Downloading)
                 ))
                 .fg(Color::Gray)
-                .render(status, buf);
             }
-            TorrentStatus::Verifying => Text::from("Verifying...").render(status, buf),
             TorrentStatus::Seeding => {
                 let receiving_peers = self.0.peers_getting_from_us.unwrap_or(0);
                 let connected_peers = self.0.peers_connected.unwrap_or(0);
                 let upload_speed = self.0.rate_upload.unwrap_or(0) as f64;
                 let upload_speed = SPEED_FORMATTER.format(upload_speed).to_string();
                 Text::from(format!(
-                    "Seeding to {receiving_peers} of {connected_peers} peers - 🔺 {upload_speed}",
+                    "{} to {receiving_peers} of {connected_peers} peers - 🔺 {upload_speed}",
+                    torrent_status_label(TorrentStatus::Seeding)
                 ))
                 .fg(Color::LightGreen)
-                .render(status, buf);
             }
-            _ => {}
-        }
+            other => Text::from(torrent_status_label(other)),
+        };
+        text.render(status, buf);
 
         // progress
         LineGauge::default()
@@ -125,6 +119,13 @@ impl ListView {
         }
     }
 
+    fn handle_press_enter(&mut self, context: &crate::Context) {
+        let index = self.selected.unwrap_or_default();
+        if let Some(torrent_id) = self.items.get(index).and_then(|item| item.0.id) {
+            context.send_event(crate::Event::OpenTorrent(torrent_id));
+        }
+    }
+
     fn get_selected(&self) -> Option<usize> {
         Some(self.selected.unwrap_or(0))
     }
@@ -138,6 +139,7 @@ impl ListView {
             crate::Event::InputEvent(Event::Key(inner)) => match inner.code {
                 KeyCode::Up => self.handle_press_up(),
                 KeyCode::Down => self.handle_press_down(),
+                KeyCode::Enter => self.handle_press_enter(context),
                 KeyCode::Char('r') => {
                     context.send_action(Action::RefreshList);
                 }
@@ -183,9 +185,11 @@ impl Widget for &ListView {
             })
             .title_bottom(Line::from(vec![
                 " Quit ".into(),
-                "<ESC>".bold(),
-                " - Reload ".into(),
+                "<ESC> ".bold(),
+                "- Reload ".into(),
                 "<r> ".bold(),
+                "- Open ".into(),
+                "<Enter> ".bold(),
             ]));
         let inner = block.inner(area);
         block.render(area, buf);

@@ -1,5 +1,5 @@
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use transmission_rpc::types::TorrentGetField;
+use transmission_rpc::types::{Id, TorrentGetField};
 
 pub(crate) struct Runner {
     client: transmission_rpc::TransClient,
@@ -57,10 +57,52 @@ impl Runner {
         }
     }
 
+    async fn refresh_torrent(&mut self, id: i64) -> crate::Event {
+        let _ = self.event_sender.send(crate::Event::TorrentUpdateStart);
+        let fields = vec![
+            TorrentGetField::Id,
+            TorrentGetField::Error,
+            TorrentGetField::ErrorString,
+            TorrentGetField::Eta,
+            TorrentGetField::IsFinished,
+            TorrentGetField::IsStalled,
+            TorrentGetField::LeftUntilDone,
+            TorrentGetField::MetadataPercentComplete,
+            TorrentGetField::Name,
+            TorrentGetField::PeersConnected,
+            TorrentGetField::PeersGettingFromUs,
+            TorrentGetField::PeersSendingToUs,
+            TorrentGetField::PercentDone,
+            TorrentGetField::QueuePosition,
+            TorrentGetField::RateDownload,
+            TorrentGetField::RateUpload,
+            TorrentGetField::RecheckProgress,
+            TorrentGetField::SeedRatioMode,
+            TorrentGetField::SeedRatioLimit,
+            TorrentGetField::SizeWhenDone,
+            TorrentGetField::Status,
+            TorrentGetField::TotalSize,
+            // TorrentGetField::Trackers,
+            TorrentGetField::DownloadDir,
+            TorrentGetField::UploadedEver,
+            TorrentGetField::UploadRatio,
+            TorrentGetField::WebseedsSendingToUs,
+        ];
+        match self
+            .client
+            .torrent_get(Some(fields), Some(vec![Id::Id(id)]))
+            .await
+        {
+            Ok(mut list) => crate::Event::TorrentUpdate(list.arguments.torrents.pop().unwrap()),
+            Err(err) => crate::Event::TorrentUpdateError(err),
+        }
+    }
+
     pub(crate) async fn run(mut self) {
         while let Some(action) = self.action_receiver.recv().await {
             let event = match action {
                 crate::Action::RefreshList => self.refresh_list().await,
+                crate::Action::RefreshTorrent(id) => self.refresh_torrent(id).await,
             };
             let _ = self.event_sender.send(event);
         }

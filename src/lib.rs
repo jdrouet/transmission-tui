@@ -11,20 +11,27 @@ use transmission_rpc::types::{Torrent, Torrents};
 use crate::view::View;
 
 mod components;
+mod helper;
 mod runner;
 mod view;
 
 pub enum Action {
     RefreshList,
+    RefreshTorrent(i64),
 }
 
 pub struct Context {
     action_sender: UnboundedSender<Action>,
+    event_sender: UnboundedSender<Event>,
 }
 
 impl Context {
     fn send_action(&self, action: Action) {
         let _ = self.action_sender.send(action);
+    }
+
+    fn send_event(&self, event: Event) {
+        let _ = self.event_sender.send(event);
     }
 }
 
@@ -33,6 +40,11 @@ pub enum Event {
     Noop,
     InputEvent(crossterm::event::Event),
     InputError(std::io::Error),
+    OpenList,
+    OpenTorrent(i64),
+    TorrentUpdate(Torrent),
+    TorrentUpdateStart,
+    TorrentUpdateError(Box<dyn std::error::Error + std::marker::Send + Sync>),
     TorrentListUpdate(Torrents<Torrent>),
     TorrentListUpdateStart,
     TorrentListUpdateError(Box<dyn std::error::Error + std::marker::Send + Sync>),
@@ -56,7 +68,10 @@ impl Application {
         let (action_sender, action_receiver) = tokio::sync::mpsc::unbounded_channel();
         let (event_sender, event_receiver) = tokio::sync::mpsc::unbounded_channel();
 
-        let context = Context { action_sender };
+        let context = Context {
+            action_sender,
+            event_sender: event_sender.clone(),
+        };
 
         let runner = crate::runner::Runner::new(client, action_receiver, event_sender);
         let task = tokio::spawn(async move { runner.run().await });

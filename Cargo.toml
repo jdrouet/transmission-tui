@@ -1,0 +1,16 @@
+[package]
+name = "transmission-tui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+color-eyre = { version = "0.6" }
+crossterm = { version = "0.29", default-features = false, features = ["event-stream"] }
+futures = { version = "0.3", default-features = false }
+human-number = { version = "0.1", default-features = false }
+ratatui = { version = "0.29", default-features = false, features = ["crossterm"] }
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+tokio = { version = "1.45", default-features = false, features = ["macros", "rt-multi-thread", "sync", "time"] }
+tokio-util = { version = "0.7", default-features = false }
+transmission-rpc = { version = "0.5", default-features = false }
+url = { version = "2.5", default-features = false }

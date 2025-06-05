@@ -20,6 +20,14 @@ impl Runner {
         }
     }
 
+    async fn delete_torrent(&mut self, id: i64) -> crate::Event {
+        let _ = self.event_sender.send(crate::Event::TorrentDeleteStart(id));
+        match self.client.torrent_remove(vec![Id::Id(id)], false).await {
+            Ok(_) => crate::Event::TorrentDelete(id),
+            Err(err) => crate::Event::TorrentDeleteError(id, err),
+        }
+    }
+
     async fn refresh_list(&mut self) -> crate::Event {
         let _ = self.event_sender.send(crate::Event::TorrentListUpdateStart);
         let fields = vec![
@@ -103,6 +111,7 @@ impl Runner {
             let event = match action {
                 crate::Action::RefreshList => self.refresh_list().await,
                 crate::Action::RefreshTorrent(id) => self.refresh_torrent(id).await,
+                crate::Action::DeleteTorrent(id) => self.delete_torrent(id).await,
             };
             let _ = self.event_sender.send(event);
         }

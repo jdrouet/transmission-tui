@@ -143,8 +143,37 @@ impl ListView {
                 KeyCode::Char('r') => {
                     context.send_action(Action::RefreshList);
                 }
+                KeyCode::Char('d') => {
+                    if let Some(id) = self
+                        .get_selected()
+                        .and_then(|index| self.items.get(index))
+                        .and_then(|torrent| torrent.0.id)
+                    {
+                        context.send_action(Action::DeleteTorrent(id));
+                    }
+                }
                 _ => {}
             },
+            crate::Event::TorrentDeleteStart(_) => {
+                self.error = None;
+                self.loading = true;
+            }
+            crate::Event::TorrentDelete(id) => {
+                self.error = None;
+                let previous = std::mem::replace(&mut self.items, Vec::new());
+                self.items = previous
+                    .into_iter()
+                    .filter(|item| !item.0.id.map(|item_id| item_id == id).unwrap_or(false))
+                    .collect();
+                self.loading = false;
+                self.selected = None;
+                context.send_action(Action::RefreshList);
+            }
+            crate::Event::TorrentDeleteError(_, err) => {
+                self.error = Some(err.to_string());
+                self.loading = true;
+                context.send_action(Action::RefreshList);
+            }
             crate::Event::TorrentListUpdateStart => {
                 self.error = None;
                 self.loading = true;
@@ -190,6 +219,8 @@ impl Widget for &ListView {
                 "<r> ".bold(),
                 "- Open ".into(),
                 "<Enter> ".bold(),
+                "- Delete ".into(),
+                "<d> ".bold(),
             ]));
         let inner = block.inner(area);
         block.render(area, buf);

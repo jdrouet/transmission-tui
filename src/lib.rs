@@ -16,6 +16,7 @@ mod runner;
 mod view;
 
 pub enum Action {
+    DeleteTorrent(i64),
     RefreshList,
     RefreshTorrent(i64),
 }
@@ -42,6 +43,9 @@ pub enum Event {
     InputError(std::io::Error),
     OpenList,
     OpenTorrent(i64),
+    TorrentDelete(i64),
+    TorrentDeleteStart(i64),
+    TorrentDeleteError(i64, Box<dyn std::error::Error + std::marker::Send + Sync>),
     TorrentUpdate(Torrent),
     TorrentUpdateStart,
     TorrentUpdateError(Box<dyn std::error::Error + std::marker::Send + Sync>),

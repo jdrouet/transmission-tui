@@ -3,13 +3,14 @@ use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::prelude::{Buffer, Rect};
 use ratatui::style::{Color, Style, Stylize};
 use ratatui::symbols::line::THICK;
-use ratatui::text::{Line, Text};
+use ratatui::text::Text;
 use ratatui::widgets::block::Title;
 use ratatui::widgets::{Block, LineGauge, Widget};
 use transmission_rpc::types::{Torrent, TorrentStatus};
 
 use crate::Action;
-use crate::components::confirm::{Confirm, ConfirmOption};
+use crate::components::confirm::Confirm;
+use crate::components::subtitle::{Subtitle, SubtitleItem};
 use crate::components::{SIZE_FORMATTER, SPEED_FORMATTER, torrent_status_label};
 
 struct TorrentItem(Torrent);
@@ -88,7 +89,15 @@ impl crate::components::list::ListItem for &TorrentItem {
     }
 }
 
-#[derive(Default)]
+const fn list_view_subtitle() -> Subtitle<4> {
+    Subtitle::new([
+        SubtitleItem::new("ESC", "Quit"),
+        SubtitleItem::new("r", "Reload"),
+        SubtitleItem::new("Enter", "Open"),
+        SubtitleItem::new("d", "Delete"),
+    ])
+}
+
 pub(super) struct ListView {
     error: Option<String>,
     loading: bool,
@@ -96,6 +105,22 @@ pub(super) struct ListView {
     offset: usize,
     selected: Option<usize>,
     delete_confirm: Option<i64>,
+    //
+    subtitle: Subtitle<4>,
+}
+
+impl Default for ListView {
+    fn default() -> Self {
+        Self {
+            error: None,
+            loading: false,
+            items: Vec::default(),
+            offset: 0,
+            selected: None,
+            delete_confirm: None,
+            subtitle: list_view_subtitle(),
+        }
+    }
 }
 
 impl ListView {
@@ -224,31 +249,23 @@ impl Widget for &ListView {
             } else {
                 Title::from(" Transmission ")
             })
-            .title_bottom(Line::from(vec![
-                " Quit ".into(),
-                "<ESC> ".bold(),
-                "- Reload ".into(),
-                "<r> ".bold(),
-                "- Open ".into(),
-                "<Enter> ".bold(),
-                "- Delete ".into(),
-                "<d> ".bold(),
-            ]));
+            .title_bottom(self.subtitle.to_line());
         let inner = block.inner(area);
         block.render(area, buf);
         crate::components::list::List::new(&self.items, self.offset, self.get_selected())
             .render(inner, buf);
 
         if self.delete_confirm.is_some() {
-            Confirm::new(
+            Confirm::<3>::new(
+                " Delete torrent ",
                 "Delete the local data?",
                 [
-                    ConfirmOption::new('y', "Yes"),
-                    ConfirmOption::new('n', "No"),
+                    SubtitleItem::new("c", "Cancel"),
+                    SubtitleItem::new("y", "Yes"),
+                    SubtitleItem::new("n", "No"),
                 ],
-                (60, 5),
+                (40, 5),
             )
-            .with_title(" Delete torrent ")
             .render(area, buf);
         }
     }

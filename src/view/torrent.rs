@@ -7,6 +7,7 @@ use ratatui::widgets::{Block, Padding, Paragraph, Widget};
 use transmission_rpc::types::Torrent;
 
 use crate::Action;
+use crate::components::subtitle::{Subtitle, SubtitleItem};
 use crate::components::{SIZE_FORMATTER, torrent_status_label};
 
 pub struct TorrentView {
@@ -14,6 +15,16 @@ pub struct TorrentView {
     error: Option<String>,
     loading: bool,
     item: Option<Torrent>,
+    //
+    subtitle: Subtitle<3>,
+}
+
+const fn torrent_view_subtitle() -> Subtitle<3> {
+    Subtitle::new([
+        SubtitleItem::new("ESC", "Quit"),
+        SubtitleItem::new("Backspace", "Back"),
+        SubtitleItem::new("r", "Reload"),
+    ])
 }
 
 impl TorrentView {
@@ -23,6 +34,8 @@ impl TorrentView {
             error: None,
             loading: false,
             item: None,
+            //
+            subtitle: torrent_view_subtitle(),
         }
     }
 
@@ -101,14 +114,7 @@ impl Widget for &TorrentView {
         };
         let block = Block::bordered()
             .title(title)
-            .title_bottom(Line::from(vec![
-                " Quit ".into(),
-                "<ESC>".bold(),
-                " - Back ".into(),
-                "<Backspace>".bold(),
-                " - Reload ".into(),
-                "<r> ".bold(),
-            ]))
+            .title_bottom(self.subtitle.to_line())
             .padding(Padding::horizontal(2));
         let inner = block.inner(area);
         block.render(area, buf);

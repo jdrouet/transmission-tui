@@ -1,7 +1,12 @@
 [package]
 name = "transmission-tui"
+description = "Simple TUI for transmission made"
+authors = ["Jeremie Drouet <jeremie.drouet@gmail.com>"]
+keywords = ["TUI", "torrent"]
+license = "MIT"
 version = "0.1.0"
 edition = "2024"
+readme = "readme.md"
 
 [dependencies]
 color-eyre = { version = "0.6" }

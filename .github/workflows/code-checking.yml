@@ -1,0 +1,51 @@
+name: code-checking
+
+on:
+  merge_group:
+    types: [checks_requested]
+  workflow_call:
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  RUSTFLAGS: "-Dwarnings"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.ref }}-code-lint
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly
+          components: rustfmt
+      - run: cargo fmt --all --check
+
+  check:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.ref }}-code-check
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+      - name: run check
+        run: cargo check --all-features --tests --workspace
+      - name: run clippy
+        run: cargo clippy --all-targets --all-features --tests --workspace

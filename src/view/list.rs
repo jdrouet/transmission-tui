@@ -197,7 +197,7 @@ impl ListView {
             }
             crate::Event::TorrentDelete(id) => {
                 self.error = None;
-                let previous = std::mem::replace(&mut self.items, Vec::new());
+                let previous = std::mem::take(&mut self.items);
                 self.items = previous
                     .into_iter()
                     .filter(|item| !item.0.id.map(|item_id| item_id == id).unwrap_or(false))
@@ -216,12 +216,8 @@ impl ListView {
                 self.loading = true;
             }
             crate::Event::TorrentListUpdate(list) => {
-                let same_size = self.items.len() == list.torrents.len();
-                self.items = list
-                    .torrents
-                    .into_iter()
-                    .map(TorrentItem)
-                    .collect::<Vec<_>>();
+                let same_size = self.items.len() == list.len();
+                self.items = list.into_iter().map(TorrentItem).collect::<Vec<_>>();
                 self.loading = false;
                 if !same_size {
                     self.selected = None;
@@ -249,7 +245,7 @@ impl Widget for &ListView {
             } else {
                 Title::from(" Transmission ")
             })
-            .title_bottom(self.subtitle.to_line());
+            .title_bottom(self.subtitle.line());
         let inner = block.inner(area);
         block.render(area, buf);
         crate::components::list::List::new(&self.items, self.offset, self.get_selected())

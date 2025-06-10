@@ -12,7 +12,7 @@ impl SubtitleItem {
         Self { label, trigger }
     }
 
-    fn to_spans(&self) -> impl Iterator<Item = Span<'static>> {
+    fn spans(&self) -> impl Iterator<Item = Span<'static>> {
         [
             " ".into(),
             self.label.into(),
@@ -32,12 +32,12 @@ impl<const N: usize> Subtitle<N> {
         Self { items }
     }
 
-    pub fn to_line(&self) -> Line {
+    pub fn line(&self) -> Line {
         Line::from_iter(self.items.iter().enumerate().flat_map(|(index, item)| {
             if index == 0 {
-                std::iter::once(Span::raw("")).chain(item.to_spans())
+                std::iter::once(Span::raw("")).chain(item.spans())
             } else {
-                std::iter::once(Span::raw("-")).chain(item.to_spans())
+                std::iter::once(Span::raw("-")).chain(item.spans())
             }
         }))
     }

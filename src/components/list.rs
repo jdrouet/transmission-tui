@@ -113,7 +113,7 @@ where
             .iter()
             .enumerate()
             .skip(self.offset)
-            .zip(layouts.into_iter())
+            .zip(&*layouts)
             .for_each(|((index, item), area)| {
                 let selected = self.selected.map(|i| i == index).unwrap_or(false);
                 ItemWrapper::new(item, selected).render(*area, buf);

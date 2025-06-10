@@ -64,7 +64,7 @@ impl Runner {
             TorrentGetField::WebseedsSendingToUs,
         ];
         match self.client.torrent_get(Some(fields), None).await {
-            Ok(list) => crate::Event::TorrentListUpdate(list.arguments),
+            Ok(list) => crate::Event::TorrentListUpdate(list.arguments.torrents),
             Err(err) => crate::Event::TorrentListUpdateError(err),
         }
     }
@@ -105,7 +105,9 @@ impl Runner {
             .torrent_get(Some(fields), Some(vec![Id::Id(id)]))
             .await
         {
-            Ok(mut list) => crate::Event::TorrentUpdate(list.arguments.torrents.pop().unwrap()),
+            Ok(mut list) => {
+                crate::Event::TorrentUpdate(Box::from(list.arguments.torrents.pop().unwrap()))
+            }
             Err(err) => crate::Event::TorrentUpdateError(err),
         }
     }

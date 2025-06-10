@@ -41,7 +41,7 @@ impl<const N: usize> Widget for &Confirm<N> {
 
         let block = Block::bordered()
             .title(Title::from(self.title.bold()))
-            .title_bottom(self.subtitle.to_line())
+            .title_bottom(self.subtitle.line())
             .padding(Padding::symmetric(2, 1));
 
         Clear.render(area, buf);

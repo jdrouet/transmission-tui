@@ -6,7 +6,7 @@ use ratatui::prelude::Backend;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
-use transmission_rpc::types::{Torrent, Torrents};
+use transmission_rpc::types::Torrent;
 
 use crate::view::View;
 
@@ -45,10 +45,10 @@ pub enum Event {
     TorrentDelete(i64),
     TorrentDeleteStart(i64),
     TorrentDeleteError(i64, Box<dyn std::error::Error + std::marker::Send + Sync>),
-    TorrentUpdate(Torrent),
+    TorrentUpdate(Box<Torrent>),
     TorrentUpdateStart,
     TorrentUpdateError(Box<dyn std::error::Error + std::marker::Send + Sync>),
-    TorrentListUpdate(Torrents<Torrent>),
+    TorrentListUpdate(Vec<Torrent>),
     TorrentListUpdateStart,
     TorrentListUpdateError(Box<dyn std::error::Error + std::marker::Send + Sync>),
 }

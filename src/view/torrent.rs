@@ -14,7 +14,7 @@ pub struct TorrentView {
     id: i64,
     error: Option<String>,
     loading: bool,
-    item: Option<Torrent>,
+    item: Option<Box<Torrent>>,
     //
     subtitle: Subtitle<3>,
 }
@@ -114,7 +114,7 @@ impl Widget for &TorrentView {
         };
         let block = Block::bordered()
             .title(title)
-            .title_bottom(self.subtitle.to_line())
+            .title_bottom(self.subtitle.line())
             .padding(Padding::horizontal(2));
         let inner = block.inner(area);
         block.render(area, buf);
